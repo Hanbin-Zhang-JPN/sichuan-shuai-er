@@ -246,7 +246,7 @@
       el(`seat-${p}`).classList.toggle('is-turn', state.phase === 'playing' && state.current === p);
     }
     el('local-dealer-chip').classList.toggle('active', state.dealer === 0);
-    el('turn-actions').hidden = state.phase !== 'playing' || state.current !== 0;
+    el('turn-actions').hidden = state.phase !== 'playing' || state.current !== 0 || state.locked || state.trick.length === 4;
     updateButtons();
   }
 
@@ -299,7 +299,7 @@
   }
 
   function validateSelection() {
-    if (!state || state.phase !== 'playing' || state.current !== 0 || selected.size === 0) return { ok: false };
+    if (!state || state.phase !== 'playing' || state.current !== 0 || state.locked || state.trick.length === 4 || selected.size === 0) return { ok: false };
     const cards = state.hands[0].filter(card => selected.has(card.id));
     if (state.trick.length === 0) {
       if (RULES.isTong(cards)) {
@@ -345,19 +345,20 @@
     const ids = new Set(cards.map(card => card.id));
     state.hands[player] = state.hands[player].filter(card => !ids.has(card.id));
     state.trick.push({ player, cards, type });
+    const trickComplete = state.trick.length === 4;
+    state.locked = true;
+    if (!trickComplete) state.current = (player + 1) % 4;
     el(`play-${player}`).innerHTML = cards.map(card => cardMarkup(card, true)).join('');
     el('center-seal').style.opacity = '.16';
     sound(cards.length > 1 ? 'throw' : 'play');
     renderAll();
     if (type === 'tong') toast(`${NAMES[player]}打出“同” · 四张${cards[0].rank}`);
     else if (cards.length > 1) toast(`${NAMES[player]}甩了 ${cards.length} 张`);
-    if (state.trick.length === 4) {
-      state.locked = true;
+    if (trickComplete) {
       setStatus('比牌中…');
       const token = state.token;
       setTimeout(() => { if (state?.token === token) resolveTrick(); }, 850);
     } else {
-      state.current = (player + 1) % 4;
       runTurn();
     }
   }
@@ -544,7 +545,7 @@
   }
 
   function hint() {
-    if (!state || state.current !== 0 || state.phase !== 'playing') return;
+    if (!state || state.current !== 0 || state.phase !== 'playing' || state.locked || state.trick.length === 4) return;
     selected.clear();
     const cards = chooseAIPlay(0);
     cards.forEach(card => selected.add(card.id));
