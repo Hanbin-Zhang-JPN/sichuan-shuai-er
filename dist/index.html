@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0c352b" />
+  <meta name="description" content="单副54张、四人两队的四川甩二升级扑克游戏。" />
+  <title>蜀门甩二 · 单副54张</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230c352b'/%3E%3Cpath d='M32 10C23 20 13 27 13 39c0 8 6 14 14 14 3 0 5-1 7-3l-3 9h14l-5-10c2 3 6 4 9 4 8 0 14-6 14-14C63 27 43 20 32 10Z' fill='%23d9b85f'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="game-shell" id="game-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">♠</span>
+        <div><h1>蜀门甩二</h1><p>四川单副升级 · 54 张</p></div>
+      </div>
+      <div class="score-strip" aria-label="级牌与闲家抓分">
+        <div><span>我方打</span><strong id="home-level">2</strong></div>
+        <div class="defender-score"><span id="defender-side">对方闲家</span><strong id="defender-score">0</strong><small>/ 45</small></div>
+        <div><span>对方打</span><strong id="away-level">2</strong></div>
+      </div>
+      <nav class="header-actions" aria-label="游戏选项">
+        <button class="icon-button" id="rules-button" type="button" aria-label="查看规则">规</button>
+        <button class="icon-button is-on" id="sound-button" type="button" aria-label="切换音效">声</button>
+        <button class="new-game-button" id="new-game-button" type="button">重新开赛</button>
+      </nav>
+    </header>
+
+    <section class="table-stage" aria-label="牌桌">
+      <div class="ambient-label">SICHUAN · SHUAI ER</div>
+      <div class="player-seat seat-north" id="seat-2">
+        <div class="avatar teammate">竹</div>
+        <div class="seat-copy"><strong>竹影</strong><span>队友 · AI</span></div>
+        <span class="card-count" id="count-2">12</span>
+      </div>
+      <div class="player-seat seat-west" id="seat-1">
+        <div class="avatar opponent">川</div>
+        <div class="seat-copy"><strong>川叔</strong><span>对手 · AI</span></div>
+        <span class="card-count" id="count-1">12</span>
+      </div>
+      <div class="player-seat seat-east" id="seat-3">
+        <div class="avatar opponent">蓉</div>
+        <div class="seat-copy"><strong>蓉姐</strong><span>对手 · AI</span></div>
+        <span class="card-count" id="count-3">12</span>
+      </div>
+
+      <div class="trick-area" id="trick-area" aria-live="polite">
+        <div class="trump-badge"><span>本局级牌</span><strong id="trump-display">待定</strong><i id="kitty-display">底 6</i></div>
+        <div class="play-slot slot-north" id="play-2"></div>
+        <div class="play-slot slot-west" id="play-1"></div>
+        <div class="play-slot slot-east" id="play-3"></div>
+        <div class="play-slot slot-south" id="play-0"></div>
+        <div class="center-seal" id="center-seal"><span>甩</span></div>
+        <p id="status-text">一副牌，四个人，正经甩一盘。</p>
+      </div>
+
+      <div class="local-seat">
+        <div class="local-head">
+          <div class="local-identity"><span class="dealer-chip" id="local-dealer-chip">庄</span><strong>你</strong><span>南家 · 与竹影一队</span></div>
+          <div class="turn-actions" id="turn-actions" hidden>
+            <span class="selection-feedback" id="selection-feedback" aria-live="polite"></span>
+            <button id="hint-button" type="button" class="secondary-action">提示</button>
+            <button id="play-button" type="button" class="primary-small" disabled>出牌</button>
+          </div>
+        </div>
+        <div class="hand" id="hand" aria-label="你的手牌"></div>
+      </div>
+
+      <div class="start-panel" id="start-panel">
+        <p class="eyebrow">四川地方玩法</p>
+        <h2>单副牌，够味。</h2>
+        <p>你和对家 AI 组队，对阵两位 AI。每人 12 张，留 6 张底牌；庄家跑分升级，谁先打到 A 谁赢。</p>
+        <button id="start-button" class="primary-action" type="button">开局发牌 <span>→</span></button>
+        <small>无需登录 · 对局记录只保存在本机</small>
+      </div>
+
+      <div class="bury-bar" id="bury-bar" hidden>
+        <div><strong>请埋 6 张底牌</strong><span>已选 <b id="bury-selected">0</b>/6 · 分牌也可以埋</span></div>
+        <button type="button" id="bury-button" class="primary-small" disabled>埋底开打</button>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <dialog class="game-dialog" id="rules-dialog">
+    <form method="dialog">
+      <button class="dialog-close" value="close" aria-label="关闭">×</button>
+      <p class="eyebrow">本游戏采用的地方规则</p>
+      <h2>四川甩二 · 单副版</h2>
+      <div class="rules-grid">
+        <section><b>54 张</b><p>一副完整扑克牌，四人各 12 张，留 6 张底牌；你与对家“竹影”同队。</p></section>
+        <section><b>级牌与主牌</b><p>从 2 开始升级，J=11、Q=12、K=13、A=14。庄家亮当前级牌定主；平时大小王、所有级牌、所有 7 和主花色牌是主牌。打 A 时只有四张 A 与大小王是主牌。</p></section>
+        <section><b>跑分与升级</b><p>5 计 5 分，10 与 K 各计 10 分，全副共 100 分。只记录闲家抓分。闲家抓满 45 分只换庄、不升级；未满 45 分则庄家守庄，每跑出超过 45 分的完整 10 分升一级，如跑出 75 分升三级。</p></section>
+        <section><b>跟牌</b><p>必须跟首家类别；没有才能垫牌或用主牌杀。首家可单出，也可选同类牌尝试甩牌。</p></section>
+        <section><b>“同”</b><p>四张同点数牌组成“同”，仅前三轮由首出者打出。其他人有“同”必须跟“同”；没有则出手里最大的四张主牌，主牌不足用最大的副牌补足。“同”压过任何非“同”牌，点数大的“同”压点数小的“同”。</p></section>
+      </div>
+      <div class="rank-line"><span>一般主牌从大到小</span><strong>正 7 › 大王 › 小王 › 副 7 › 正级牌 › 副级牌 › 主花色其他牌</strong></div>
+      <p class="rule-note">闲家赢得末墩才计双倍底牌分。庄家跑掉底牌时，底分不另记。任一队升到 A 即赢得整场；各队保留自己的级牌进度。</p>
+      <button class="primary-action dialog-done" value="close">晓得了</button>
+    </form>
+  </dialog>
+
+  <dialog class="game-dialog result-dialog" id="result-dialog">
+    <div class="result-medallion" id="result-icon">胜</div>
+    <p class="eyebrow">本局结束</p>
+    <h2 id="result-title">守庄成功</h2>
+    <p id="result-summary"></p>
+    <div class="result-stats">
+      <div><span>本局闲家抓分</span><strong id="result-defender">0</strong></div>
+      <div><span>我方 : 对方级牌</span><strong id="result-levels">2 : 2</strong></div>
+      <div><span>累计战绩</span><strong id="match-record">0胜 0负</strong></div>
+    </div>
+    <button id="again-button" class="primary-action">再来一局</button>
+  </dialog>
+  <script src="rules.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
