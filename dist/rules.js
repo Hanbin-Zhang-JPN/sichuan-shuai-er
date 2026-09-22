@@ -66,17 +66,20 @@
     const defenderTeam = 1 - dealerTeam;
     const nextLevels = [...levels];
     if (defenderPoints >= 45) {
+      const steps = Math.min(3, Math.floor((defenderPoints - 45) / 10));
+      nextLevels[defenderTeam] = Math.min(MAX_LEVEL, nextLevels[defenderTeam] + steps);
       return {
         levels: nextLevels,
         nextDealer: (dealer + 1) % 4,
         winningTeam: defenderTeam,
         changedDealerSide: true,
-        steps: 0,
-        champion: null
+        steps,
+        escapedPoints: Math.max(0, 100 - defenderPoints),
+        champion: nextLevels[defenderTeam] === MAX_LEVEL ? defenderTeam : null
       };
     }
     const escapedPoints = Math.max(0, 100 - defenderPoints);
-    const steps = Math.max(0, Math.floor((escapedPoints - 45) / 10));
+    const steps = escapedPoints === 100 ? 3 : 1;
     nextLevels[dealerTeam] = Math.min(MAX_LEVEL, nextLevels[dealerTeam] + steps);
     return {
       levels: nextLevels,

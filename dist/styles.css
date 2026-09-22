@@ -50,9 +50,10 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .seat-copy span { color: var(--muted); font-size: 12px; }
 .card-count { margin-left: auto; min-width: 26px; text-align: center; color: var(--gold); font-weight: 700; }
 .trick-area { position: absolute; z-index: 3; left: 50%; top: 42%; transform: translate(-50%,-50%); width: min(500px, 53vw); height: 280px; }
-.trump-badge { position: absolute; z-index: 4; left: 50%; top: 0; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid rgba(217,182,95,.4); border-radius: 999px; background: rgba(4,29,24,.83); white-space: nowrap; }
-.trump-badge span { color: var(--muted); font-size: 12px; }
-.trump-badge strong.red { color: #f07367; }
+.trump-badge { position: absolute; z-index: 4; left: 50%; top: 0; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 7px 12px; border: 1px solid rgba(217,182,95,.4); border-radius: 12px; background: rgba(4,29,24,.9); white-space: nowrap; }
+.trump-item { display: flex; align-items: baseline; gap: 5px; color: var(--muted); font-size: 12px; }
+.trump-item b,.trump-item strong { color: var(--ink); font-size: 16px; }
+.trump-item b.red { color: #f07367; }
 .trump-badge i { margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--line); color: var(--gold); font-size: 11px; font-style: normal; }
 .center-seal { position: absolute; left: 50%; top: 50%; width: 78px; height: 78px; display: grid; place-items: center; border: 1px solid rgba(217,182,95,.28); transform: translate(-50%,-50%) rotate(45deg); color: rgba(217,182,95,.37); transition: opacity .2s; }
 .center-seal span { transform: rotate(-45deg); font: 44px "STKaiti", "KaiTi", serif; }
@@ -68,6 +69,7 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .played-card .card-corner { font-size: 15px; line-height: 1; }
 .played-card .card-suit { position: absolute; inset: 0; display: grid; place-items: center; font-size: 28px; }
 .played-card.joker .card-suit { font-size: 16px; writing-mode: vertical-rl; letter-spacing: .1em; }
+.played-card .card-native-level { position: absolute; left: 3px; bottom: 4px; padding: 2px 3px; border-radius: 3px; color: #fff9e9; background: #9c2f23; font-size: 11px; line-height: 1; }
 @keyframes deal-in { from { opacity: 0; transform: translateY(10px) scale(.9); } }
 .local-seat { position: absolute; z-index: 5; bottom: 15px; left: 50%; width: min(970px, calc(100% - 145px)); transform: translateX(-50%); }
 .local-head { min-height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 3px 8px; }
@@ -92,7 +94,9 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .card-suit { position: absolute; inset: 0; display: grid; place-items: center; font-size: 36px; }
 .card.joker .card-corner { font-size: 13px; writing-mode: vertical-rl; letter-spacing: .08em; }
 .card.joker .card-suit { font-size: 20px; writing-mode: vertical-rl; letter-spacing: .18em; }
-.card.is-trump::after { content: "主"; position: absolute; right: 5px; bottom: 5px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #fbf1cf; background: #a83428; font-size: 10px; font-weight: 800; }
+.card.is-trump::after { content: "主"; position: absolute; left: 5px; bottom: 5px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #fbf1cf; background: #a83428; font-size: 10px; font-weight: 800; }
+.card.is-native-level::after { content: none; }
+.card-native-level { position: absolute; left: 5px; bottom: 5px; padding: 3px 5px; border-radius: 5px; color: #fff9e9; background: #9c2f23; font-size: 12px; font-weight: 800; line-height: 1.1; }
 .start-panel { position: absolute; z-index: 30; left: 50%; top: 47%; transform: translate(-50%,-50%); width: min(430px, calc(100% - 32px)); padding: 28px 30px 25px; text-align: center; border: 1px solid rgba(217,182,95,.5); background: linear-gradient(160deg, rgba(10,48,40,.98), rgba(5,29,25,.99)); border-radius: 20px; box-shadow: 0 30px 90px rgba(0,0,0,.5); }
 .eyebrow { margin: 0 0 5px; color: var(--gold); font-size: 12px; letter-spacing: .18em; }
 .start-panel h2,.game-dialog h2 { margin: 0; font: 36px/1.2 "STKaiti", "KaiTi", serif; }
@@ -120,11 +124,15 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .dialog-done { margin-top: 8px; }
 .result-dialog { text-align: center; }
 .result-medallion { width: 74px; height: 74px; display: grid; place-items: center; margin: 0 auto 12px; border: 1px solid var(--gold); color: var(--gold); transform: rotate(45deg); font: 42px "STKaiti", "KaiTi", serif; }
-.result-dialog>p:not(.eyebrow) { color: var(--muted); }
+.result-dialog>p:not(.eyebrow) { color: var(--muted); line-height: 1.6; }
 .result-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 22px 0; }
 .result-stats div { padding: 12px 8px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0,0,0,.13); }
-.result-stats span { display: block; color: var(--muted); font-size: 12px; }
+.result-stats span { display: block; color: var(--muted); font-size: 14px; }
 .result-stats strong { display: block; margin-top: 4px; color: var(--gold); font-size: 19px; }
+.result-breakdown { margin-bottom: 22px; padding: 5px 15px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0,0,0,.12); text-align: left; }
+.result-breakdown p { display: flex; justify-content: space-between; gap: 15px; margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.45; }
+.result-breakdown p:last-child { border-bottom: 0; }
+.result-breakdown strong { color: var(--ink); font-weight: 600; text-align: right; }
 @media (max-width: 900px) {
   .local-seat { width: calc(100% - 90px); }
   .card { flex-basis: 68px; margin-left: -20px; }
@@ -144,6 +152,9 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
   .seat-west { top: 35%; }
   .seat-east { top: 35%; }
   .trick-area { width: 86vw; top: 41%; }
+  .trump-badge { gap: 6px; padding: 6px 8px; }
+  .trump-item { font-size: 11px; gap: 3px; }
+  .trump-item b,.trump-item strong { font-size: 14px; }
   .slot-west { left: 18px; }.slot-east { right: 18px; }
   .local-seat { width: 100%; bottom: 10px; }
   .local-head { padding: 0 12px 8px; }
@@ -153,4 +164,6 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
   .bury-bar { bottom: 148px; width: calc(100% - 24px); justify-content: space-between; }
   .rules-grid { grid-template-columns: 1fr; }
   .result-stats { grid-template-columns: 1fr; }
+  .result-breakdown p { display: block; }
+  .result-breakdown strong { display: block; text-align: left; margin-top: 3px; }
 }

@@ -111,7 +111,8 @@
 
   function cardLabel(card) {
     if (card.joker) return card.rank;
-    return `${suitInfo(card.suit).name}${card.rank}`;
+    const nativeLevel = state && state.level !== 14 && card.rank === state.levelRank && card.suit === state.trumpSuit;
+    return `${suitInfo(card.suit).name}${card.rank}${nativeLevel ? `，本${card.rank}` : ''}`;
   }
 
   function sortHand(hand) {
@@ -127,11 +128,13 @@
   function cardMarkup(card, compact = false) {
     const info = card.suit ? suitInfo(card.suit) : null;
     const red = card.joker === 'big' || info?.red;
-    const classes = [compact ? 'played-card' : 'card', red ? 'red' : '', card.joker ? 'joker' : '', !compact && isTrump(card) ? 'is-trump' : ''].filter(Boolean).join(' ');
+    const nativeLevel = !card.joker && state.level !== 14 && card.rank === state.levelRank && card.suit === state.trumpSuit;
+    const classes = [compact ? 'played-card' : 'card', red ? 'red' : '', card.joker ? 'joker' : '', !compact && isTrump(card) ? 'is-trump' : '', nativeLevel ? 'is-native-level' : ''].filter(Boolean).join(' ');
     const corner = card.joker ? (card.joker === 'big' ? '大王' : '小王') : `${card.rank}<span>${info.symbol}</span>`;
     const center = card.joker ? (card.joker === 'big' ? '大王' : '小王') : info.symbol;
-    if (compact) return `<div class="${classes}" title="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span></div>`;
-    return `<button type="button" class="${classes}" data-id="${card.id}" aria-label="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span></button>`;
+    const nativeMark = nativeLevel ? `<span class="card-native-level">本${card.rank}</span>` : '';
+    if (compact) return `<div class="${classes}" title="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</div>`;
+    return `<button type="button" class="${classes}" data-id="${card.id}" aria-label="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</button>`;
   }
 
   function beginRound() {
@@ -234,8 +237,9 @@
     el('home-level').textContent = RULES.levelRank(match.levels[0]);
     el('away-level').textContent = RULES.levelRank(match.levels[1]);
     const suit = state.trumpSuit ? suitInfo(state.trumpSuit) : null;
-    el('trump-display').textContent = suit ? `${suit.symbol} ${state.levelRank}` : 'A · 无花色主';
-    el('trump-display').classList.toggle('red', Boolean(suit?.red));
+    el('trump-suit').textContent = suit ? `${suit.symbol} ${suit.name}` : '无';
+    el('trump-suit').classList.toggle('red', Boolean(suit?.red));
+    el('trump-display').textContent = state.levelRank;
     el('kitty-display').textContent = `底 ${state.bottom.length || (state.phase === 'bury' ? 6 : 0)}`;
     for (let p = 1; p < 4; p++) {
       el(`seat-${p}`).classList.toggle('is-dealer', state.dealer === p);
@@ -493,8 +497,8 @@
     const bottomPoints = state.bottom.reduce((sum, card) => sum + points(card), 0) * 2;
     if (teamOf(state.lastWinner) !== teamOf(state.dealer)) state.defenderPoints += bottomPoints;
     const dealerTeam = teamOf(state.dealer);
-    const defenderTeam = 1 - dealerTeam;
-    const outcome = RULES.resolveRound(match.levels, state.dealer, state.defenderPoints);
+    const previousLevels = [...match.levels];
+    const outcome = RULES.resolveRound(previousLevels, state.dealer, state.defenderPoints);
     const defendersWon = outcome.changedDealerSide;
     const homeWon = outcome.winningTeam === 0;
     if (homeWon) record.wins++; else record.losses++;
@@ -506,20 +510,26 @@
     state.locked = true;
     renderAll();
     const dealerSide = dealerTeam === 0 ? '我方' : '对方';
+    const winningSide = TEAM_NAMES[outcome.winningTeam];
     el('result-icon').textContent = homeWon ? '胜' : '负';
+    el('result-round-info').textContent = `第 ${match.rounds} 局结算 · ${NAMES[state.dealer]}坐庄 · ${state.trumpSuit ? suitInfo(state.trumpSuit).name : '无花色'} ${state.levelRank}`;
     el('result-title').textContent = outcome.champion !== null
       ? `${TEAM_NAMES[outcome.champion]}打到 A，赢得整场！`
       : homeWon ? (dealerTeam === 0 && !defendersWon ? '守庄成功' : '夺庄成功')
         : (dealerTeam === 1 && !defendersWon ? '对方守庄' : '对方夺庄');
     const scoreNote = defendersWon
-      ? `闲家抓得 ${state.defenderPoints} 分，达到 45 分：换庄，不升级。`
-      : `${dealerSide}跑掉 ${outcome.escapedPoints} 分，升 ${outcome.steps} 级。`;
+      ? `闲家抓得 ${state.defenderPoints} 分，夺庄成功；${outcome.steps ? `升 ${outcome.steps} 级` : '本局不升级'}。`
+      : `${dealerSide}守庄成功，跑掉 ${outcome.escapedPoints} 分；升 ${outcome.steps} 级。`;
     const bottomNote = teamOf(state.lastWinner) === dealerTeam
       ? `底牌 ${bottomPoints / 2} 分被庄家跑掉。`
       : `闲家抠底，底牌 ${bottomPoints / 2} 分双倍计入。`;
-    el('result-summary').textContent = `${scoreNote}${bottomNote} 下局我方打 ${RULES.levelRank(match.levels[0])}，对方打 ${RULES.levelRank(match.levels[1])}。`;
+    el('result-summary').textContent = scoreNote;
     el('result-defender').textContent = state.defenderPoints;
-    el('result-levels').textContent = `${RULES.levelRank(match.levels[0])} : ${RULES.levelRank(match.levels[1])}`;
+    el('result-escaped').textContent = outcome.escapedPoints;
+    el('result-upgrade').textContent = outcome.steps ? `${winningSide} +${outcome.steps}` : '不升级';
+    el('result-bottom').textContent = bottomNote;
+    el('result-levels').textContent = `我方 ${RULES.levelRank(previousLevels[0])} → ${RULES.levelRank(match.levels[0])} · 对方 ${RULES.levelRank(previousLevels[1])} → ${RULES.levelRank(match.levels[1])}`;
+    el('result-next-dealer').textContent = outcome.champion !== null ? '整场已结束' : `${NAMES[nextDealer]}（${TEAM_NAMES[teamOf(nextDealer)]}）`;
     el('match-record').textContent = `${record.wins}胜 ${record.losses}负`;
     el('again-button').textContent = outcome.champion !== null ? '重新开赛' : '下一局';
     sound(homeWon ? 'roundWin' : 'roundLose');

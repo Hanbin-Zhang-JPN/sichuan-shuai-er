@@ -47,7 +47,11 @@
       </div>
 
       <div class="trick-area" id="trick-area" aria-live="polite">
-        <div class="trump-badge"><span>本局级牌</span><strong id="trump-display">待定</strong><i id="kitty-display">底 6</i></div>
+        <div class="trump-badge" aria-label="本局主牌">
+          <span class="trump-item">主花色 <b id="trump-suit">待定</b></span>
+          <span class="trump-item">主牌点数 <strong id="trump-display">待定</strong></span>
+          <i id="kitty-display">底 6</i>
+        </div>
         <div class="play-slot slot-north" id="play-2"></div>
         <div class="play-slot slot-west" id="play-1"></div>
         <div class="play-slot slot-east" id="play-3"></div>
@@ -92,8 +96,8 @@
       <h2>四川甩二 · 单副版</h2>
       <div class="rules-grid">
         <section><b>54 张</b><p>一副完整扑克牌，四人各 12 张，留 6 张底牌；你与对家“竹影”同队。</p></section>
-        <section><b>级牌与主牌</b><p>从 2 开始升级，J=11、Q=12、K=13、A=14。庄家亮当前级牌定主；平时大小王、所有级牌、所有 7 和主花色牌是主牌。打 A 时只有四张 A 与大小王是主牌。</p></section>
-        <section><b>跑分与升级</b><p>5 计 5 分，10 与 K 各计 10 分，全副共 100 分。只记录闲家抓分。闲家抓满 45 分只换庄、不升级；未满 45 分则庄家守庄，每跑出超过 45 分的完整 10 分升一级，如跑出 75 分升三级。</p></section>
+        <section><b>级牌与主牌</b><p>从 2 开始升级，J=11、Q=12、K=13、A=14。庄家亮当前级牌定主；平时大小王、所有级牌、所有 7 和主花色牌是主牌。主花色的级牌标为“本5”等。打 A 时无主花色，只有四张 A 与大小王是主牌。</p></section>
+        <section><b>跑分与升级</b><p>5 计 5 分，10 与 K 各计 10 分，全副共 100 分；只记录闲家抓分。闲家抓满 45 分换庄，抓 45–54 分不升、55–64 分升 1、65–74 分升 2、75 分及以上升 3。闲家未满 45 分则庄家守庄；跑分不足 100 升 1，跑满 100 升 3。单局最多升 3 级。</p></section>
         <section><b>跟牌</b><p>必须跟首家类别；没有才能垫牌或用主牌杀。首家可单出，也可选同类牌尝试甩牌。</p></section>
         <section><b>“同”</b><p>四张同点数牌组成“同”，仅前三轮由首出者打出。其他人有“同”必须跟“同”；没有则出手里最大的四张主牌，主牌不足用最大的副牌补足。“同”压过任何非“同”牌，点数大的“同”压点数小的“同”。</p></section>
       </div>
@@ -105,13 +109,19 @@
 
   <dialog class="game-dialog result-dialog" id="result-dialog">
     <div class="result-medallion" id="result-icon">胜</div>
-    <p class="eyebrow">本局结束</p>
+    <p class="eyebrow" id="result-round-info">本局结束</p>
     <h2 id="result-title">守庄成功</h2>
     <p id="result-summary"></p>
     <div class="result-stats">
       <div><span>本局闲家抓分</span><strong id="result-defender">0</strong></div>
-      <div><span>我方 : 对方级牌</span><strong id="result-levels">2 : 2</strong></div>
-      <div><span>累计战绩</span><strong id="match-record">0胜 0负</strong></div>
+      <div><span>庄家跑分</span><strong id="result-escaped">100</strong></div>
+      <div><span>本局升主</span><strong id="result-upgrade">不升级</strong></div>
+    </div>
+    <div class="result-breakdown">
+      <p id="result-bottom"></p>
+      <p><span>级牌进度</span><strong id="result-levels">我方 2 → 2 · 对方 2 → 2</strong></p>
+      <p><span>下局庄家</span><strong id="result-next-dealer">待定</strong></p>
+      <p><span>累计战绩</span><strong id="match-record">0胜 0负</strong></p>
     </div>
     <button id="again-button" class="primary-action">再来一局</button>
   </dialog>

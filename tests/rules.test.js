@@ -10,20 +10,28 @@ test('一副牌等级从 2 连续升到 A，J/Q/K/A 分别为 11/12/13/14', () =
   }
 });
 
-test('庄家跑掉 75 分时，从 2 升到 5 并由对家继续坐庄', () => {
+test('庄家跑掉 75 或 95 分，都只升一级并守庄', () => {
   const result = rules.resolveRound([2, 2], 0, 25);
-  assert.deepEqual(result.levels, [5, 2]);
-  assert.equal(result.steps, 3);
+  assert.deepEqual(result.levels, [3, 2]);
+  assert.equal(result.steps, 1);
   assert.equal(result.nextDealer, 2);
-  assert.equal(result.champion, null);
+  const high = rules.resolveRound([2, 2], 0, 5);
+  assert.deepEqual(high.levels, [3, 2]);
+  assert.equal(high.steps, 1);
 });
 
-test('闲家抓满 45 分及以上只换庄，不增加级牌', () => {
-  for (const points of [45, 55, 75, 110]) {
+test('庄家跑满 100 分升三级，单局最多升三级', () => {
+  const result = rules.resolveRound([2, 2], 0, 0);
+  assert.deepEqual(result.levels, [5, 2]);
+  assert.equal(result.steps, 3);
+});
+
+test('闲家达到 45 分后换庄，并按 0、1、2、3 级封顶升级', () => {
+  for (const [points, steps] of [[45, 0], [54, 0], [55, 1], [64, 1], [65, 2], [74, 2], [75, 3], [100, 3], [110, 3]]) {
     const result = rules.resolveRound([7, 9], 0, points);
-    assert.deepEqual(result.levels, [7, 9]);
+    assert.deepEqual(result.levels, [7, 9 + steps]);
     assert.equal(result.nextDealer, 1);
-    assert.equal(result.steps, 0);
+    assert.equal(result.steps, steps);
   }
 });
 
@@ -31,6 +39,9 @@ test('任何一队先升级到 A 时赢得整场', () => {
   const result = rules.resolveRound([8, 13], 1, 40);
   assert.deepEqual(result.levels, [8, 14]);
   assert.equal(result.champion, 1);
+  const defender = rules.resolveRound([13, 9], 1, 55);
+  assert.deepEqual(defender.levels, [14, 9]);
+  assert.equal(defender.champion, 0);
 });
 
 test('打 A 时，54 张牌里仅四张 A 和两张大小王为主牌', () => {
