@@ -125,3 +125,50 @@ test('没有“同”时先交最大的四张主牌，主牌不足再补最大�
   const selected = rules.strongestTongFallback(hand, card => card.trump, card => card.strength);
   assert.deepEqual(selected.map(card => card.id), ['b', 'a', 'c', 'e']);
 });
+
+test('甩同花色多张牌时，必须是尚未出过的最高几张', () => {
+  const club = rank => ({ suit: 'clubs', rank, joker: null });
+  assert.equal(rules.canLeadThrow([club('K'), club('Q')], [], 2, 'hearts'), false);
+  assert.equal(rules.canLeadThrow([club('K'), club('Q')], [club('A')], 2, 'hearts'), true);
+  assert.equal(rules.canLeadThrow([club('K'), club('10')], [club('A'), club('Q')], 2, 'hearts'), false);
+  assert.equal(rules.canLeadThrow([club('K'), club('10')], [club('A'), club('Q'), club('J')], 2, 'hearts'), true);
+  assert.equal(rules.canLeadThrow([club('K'), club('9')], [club('A'), club('Q'), club('J')], 2, 'hearts'), false);
+  assert.equal(rules.cardCategory(club('5'), 5, 'hearts'), 'trump');
+  assert.equal(rules.cardCategory(club('K'), 5, 'hearts'), 'clubs');
+});
+
+test('两张副牌必须由两张主牌才能压过，单王混副牌不能取胜', () => {
+  const card = (rank, suit) => ({ rank, suit, joker: null });
+  const big = { rank: '大王', suit: null, joker: 'big' };
+  const small = { rank: '小王', suit: null, joker: 'small' };
+  const lead = [card('A', 'clubs'), card('K', 'clubs')];
+  assert.equal(rules.beatsNormalPlay([big, card('Q', 'spades')], lead, lead, 2, 'hearts'), false);
+  assert.equal(rules.beatsNormalPlay([big, card('Q', 'clubs')], lead, lead, 2, 'hearts'), false);
+  assert.equal(rules.beatsNormalPlay([small, card('2', 'hearts')], lead, lead, 2, 'hearts'), true);
+  assert.equal(rules.beatsNormalPlay([card('Q', 'clubs'), card('J', 'clubs')], lead, lead, 2, 'hearts'), false);
+  const plays = [
+    { player: 0, cards: lead },
+    { player: 1, cards: [big, card('Q', 'spades')] },
+    { player: 2, cards: [card('Q', 'clubs'), card('J', 'clubs')] }
+  ];
+  assert.equal(rules.winningNormalPlay(plays, 2, 'hearts').player, 0);
+  plays.push({ player: 3, cards: [small, card('2', 'hearts')] });
+  assert.equal(rules.winningNormalPlay(plays, 2, 'hearts').player, 3);
+});
+
+test('AI 无法压过对手的多张主牌时，不主动送出可选择保留的分牌', () => {
+  const card = (rank, suit) => ({ rank, suit, joker: null });
+  const lead = { player: 0, cards: [card('A', 'clubs'), card('K', 'clubs')] };
+  const cut = { player: 1, cards: [
+    { rank: '大王', suit: null, joker: 'big' },
+    { rank: '小王', suit: null, joker: 'small' }
+  ] };
+  const hand = [card('5', 'clubs'), card('10', 'clubs'), card('7', 'clubs'), card('6', 'clubs')];
+  const chosen = rules.chooseMultiFollow(hand, [lead, cut], 2, 2, 'hearts');
+  assert.deepEqual(chosen.map(c => c.rank).sort(), ['6', '7']);
+  const shortHand = [card('5', 'clubs'), card('10', 'spades'), card('8', 'diamonds'), card('K', 'diamonds')];
+  const shortChoice = rules.chooseMultiFollow(shortHand, [lead, cut], 2, 2, 'hearts');
+  assert.equal(shortChoice.length, 2);
+  assert.ok(shortChoice.some(c => c.suit === 'clubs' && c.rank === '5'));
+  assert.ok(shortChoice.some(c => c.suit === 'diamonds' && c.rank === '8'));
+});

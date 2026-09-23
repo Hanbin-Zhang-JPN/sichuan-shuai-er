@@ -134,7 +134,7 @@
     state = {
       token, hands: dealt.hands, bottom: dealt.bottom, dealer, trumpSuit, level, levelRank,
       phase: 'dealing', current: dealer, leader: dealer, trick: [], defenderPoints: 0,
-      lastWinner: dealer, locked: true, trickNumber: 1,
+      lastWinner: dealer, locked: true, trickNumber: 1, playedCards: [],
       firstTrickAce: false, lastTrickAce: false
     };
     for (const hand of state.hands) sortHand(hand);
@@ -304,6 +304,9 @@
       }
       const cat = category(cards[0]);
       if (!cards.every(card => category(card) === cat)) return { ok: false, message: '甩牌必须是同一类别' };
+      if (cards.length > 1 && !RULES.canLeadThrow(cards, state.playedCards, state.level, state.trumpSuit)) {
+        return { ok: false, message: '甩牌必须是该类别尚未出过的最高几张' };
+      }
       return { ok: true };
     }
     const required = state.trick[0].cards.length;
@@ -432,54 +435,22 @@
 
     const required = state.trick[0].cards.length;
     const leadCat = category(state.trick[0].cards[0]);
+    if (required > 1) return RULES.chooseMultiFollow(hand, state.trick, player, state.level, state.trumpSuit);
     const matching = hand.filter(card => category(card) === leadCat).sort((a, b) => power(a) - power(b));
-    const chosen = [];
-    const needMatch = Math.min(required, matching.length);
-    if (required === 1) {
-      const current = currentWinningCard();
-      const partnerWinning = teamOf(current.player) === teamOf(player);
-      const legal = keepAceForLastTrick(needMatch ? matching : hand, hand, player);
-      const winners = legal.filter(card => beats(card, current.card, leadCat));
-      if (partnerWinning) {
-        const losers = legal.filter(card => !beats(card, current.card, leadCat));
-        const safeToFeed = state.trick.length === 3 || power(current.card) >= 980;
-        chosen.push(losers.length ? (safeToFeed ? mostPoints(losers) : leastCost(losers)) : leastCost(legal));
-      } else if (winners.length) {
-        // 两边都会抢有分的墩：庄家把分跑掉，闲家把分抓回来。
-        chosen.push(winners.sort((a, b) => power(a) - power(b) || points(b) - points(a))[0]);
-      } else {
-        chosen.push(leastCost(legal));
-      }
-    } else {
-      const current = currentWinningCard();
-      const partnerWinning = teamOf(current.player) === teamOf(player);
-      const ordered = [...matching].sort((a, b) => partnerWinning
-        ? points(b) - points(a) || power(a) - power(b)
-        : power(b) - power(a) || points(a) - points(b));
-      chosen.push(...ordered.slice(0, needMatch));
+    const current = currentWinningCard();
+    const partnerWinning = teamOf(current.player) === teamOf(player);
+    const legal = keepAceForLastTrick(matching.length ? matching : hand, hand, player);
+    const winners = legal.filter(card => beats(card, current.card, leadCat));
+    if (partnerWinning) {
+      const losers = legal.filter(card => !beats(card, current.card, leadCat));
+      const safeToFeed = state.trick.length === 3;
+      return [losers.length ? (safeToFeed ? mostPoints(losers) : leastCost(losers)) : leastCost(legal)];
     }
-    if (chosen.length < required) {
-      const chosenIds = new Set(chosen.map(card => card.id));
-      const partnerWinning = teamOf(currentWinningCard().player) === teamOf(player);
-      const rest = hand.filter(card => !chosenIds.has(card.id)).sort((a, b) => {
-        const costA = (partnerWinning ? -points(a) * 10 : points(a) * 10) + (isTrump(a) ? 50 : 0) + power(a) / 20;
-        const costB = (partnerWinning ? -points(b) * 10 : points(b) * 10) + (isTrump(b) ? 50 : 0) + power(b) / 20;
-        return costA - costB;
-      });
-      const allowed = keepAceForLastTrick(rest, hand, player);
-      chosen.push(...allowed.slice(0, required - chosen.length));
-      if (chosen.length < required) chosen.push(...rest.filter(card => !chosen.includes(card)).slice(0, required - chosen.length));
+    if (winners.length) {
+      // 能抢到分墩时只用够赢的牌；抢不到就不主动送分。
+      return [winners.sort((a, b) => power(a) - power(b) || points(b) - points(a))[0]];
     }
-    return chosen;
-  }
-
-  function strongestEligible(play, leadCat) {
-    const eligible = play.cards.filter(card => category(card) === leadCat || (leadCat !== 'trump' && isTrump(card)));
-    if (!eligible.length) return null;
-    return eligible.sort((a, b) => {
-      if (isTrump(a) !== isTrump(b)) return isTrump(a) ? 1 : -1;
-      return power(a) - power(b);
-    }).at(-1);
+    return [leastCost(legal)];
   }
 
   function beats(challenger, incumbent, leadCat) {
@@ -497,13 +468,8 @@
       const best = RULES.winningTongPlay(state.trick);
       return { player: best.player, card: best.cards[0], type: 'tong' };
     }
-    const leadCat = category(state.trick[0].cards[0]);
-    let winner = { player: state.trick[0].player, card: strongestEligible(state.trick[0], leadCat), type: 'normal' };
-    for (const play of state.trick.slice(1)) {
-      const card = strongestEligible(play, leadCat);
-      if (card && beats(card, winner.card, leadCat)) winner = { player: play.player, card };
-    }
-    return winner;
+    const winner = RULES.winningNormalPlay(state.trick, state.level, state.trumpSuit);
+    return { player: winner.player, card: winner.cards[0], type: 'normal' };
   }
 
   function resolveTrick() {
@@ -523,6 +489,7 @@
     if (finished && state.level === 14) {
       state.lastTrickAce = state.trick.some(play => play.player === state.dealer && play.cards.some(card => card.rank === 'A'));
     }
+    state.playedCards.push(...state.trick.flatMap(play => play.cards));
     const token = state.token;
     setTimeout(() => {
       if (!state || state.token !== token) return;
