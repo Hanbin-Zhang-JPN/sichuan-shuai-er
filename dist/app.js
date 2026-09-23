@@ -110,14 +110,17 @@
   function cardMarkup(card, compact = false) {
     const info = card.suit ? suitInfo(card.suit) : null;
     const red = card.joker === 'big' || info?.red;
+    const courtRank = !card.joker && ['J', 'Q', 'K'].includes(card.rank);
     const nativeLevel = !card.joker && state.level !== 14 && card.rank === state.levelRank && card.suit === state.trumpSuit;
     const cannotBury = !compact && state.phase === 'bury' && !RULES.canBuryCard(card);
-    const classes = [compact ? 'played-card' : 'card', red ? 'red' : '', card.joker ? 'joker' : '', !compact && isTrump(card) ? 'is-trump' : '', nativeLevel ? 'is-native-level' : '', cannotBury ? 'cannot-bury' : ''].filter(Boolean).join(' ');
+    const classes = [compact ? 'played-card' : 'card', red ? 'red' : '', card.joker ? 'joker' : '', courtRank ? 'is-court' : '', !compact && isTrump(card) ? 'is-trump' : '', nativeLevel ? 'is-native-level' : '', cannotBury ? 'cannot-bury' : ''].filter(Boolean).join(' ');
     const corner = card.joker ? (card.joker === 'big' ? '大王' : '小王') : `${card.rank}<span>${info.symbol}</span>`;
     const center = card.joker ? (card.joker === 'big' ? '大王' : '小王') : info.symbol;
+    const portrait = courtRank ? `<img class="card-portrait" src="assets/court-${card.rank.toLowerCase()}.webp" alt="" draggable="false">` : '';
+    const suitClass = courtRank ? 'card-suit court-suit' : 'card-suit';
     const nativeMark = nativeLevel ? `<span class="card-native-level">本${card.rank}</span>` : '';
-    if (compact) return `<div class="${classes}" title="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</div>`;
-    return `<button type="button" class="${classes}" data-id="${card.id}" aria-label="${cardLabel(card)}${cannotBury ? '，分牌不可埋' : ''}" ${cannotBury ? 'disabled title="分牌不可埋"' : ''}><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</button>`;
+    if (compact) return `<div class="${classes}" title="${cardLabel(card)}">${portrait}<span class="card-corner">${corner}</span><span class="${suitClass}">${center}</span>${nativeMark}</div>`;
+    return `<button type="button" class="${classes}" data-id="${card.id}" aria-label="${cardLabel(card)}${cannotBury ? '，分牌不可埋' : ''}" ${cannotBury ? 'disabled title="分牌不可埋"' : ''}>${portrait}<span class="card-corner">${corner}</span><span class="${suitClass}">${center}</span>${nativeMark}</button>`;
   }
 
   function beginRound() {

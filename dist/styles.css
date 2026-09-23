@@ -73,13 +73,14 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .slot-south { left: 50%; bottom: 30px; transform: translateX(-50%); }
 .slot-west { left: 48px; top: 50%; transform: translateY(-50%); }
 .slot-east { right: 48px; top: 50%; transform: translateY(-50%); }
-.played-card { position: relative; width: 58px; height: 82px; margin-left: -19px; padding: 5px; border-radius: 7px; color: #171512; background: #f9f6ed; border: 1px solid #d6d0c2; box-shadow: 0 8px 16px rgba(0,0,0,.28); font-weight: 800; animation: deal-in .22s ease-out both; }
+.played-card { position: relative; width: 58px; height: 82px; margin-left: -19px; padding: 5px; overflow: hidden; border-radius: 7px; color: #171512; background: #f9f6ed; border: 1px solid #d6d0c2; box-shadow: 0 8px 16px rgba(0,0,0,.28); font-weight: 800; animation: deal-in .22s ease-out both; }
 .played-card:first-child { margin-left: 0; }
 .played-card.red { color: #ba2929; }
-.played-card .card-corner { font-size: 15px; line-height: 1; }
+.played-card .card-corner { position: relative; z-index: 2; font-size: 15px; line-height: 1; }
 .played-card .card-suit { position: absolute; inset: 0; display: grid; place-items: center; font-size: 28px; }
+.played-card .card-suit.court-suit { inset: auto 4px 4px auto; font-size: 17px; line-height: 1; }
 .played-card.joker .card-suit { font-size: 16px; writing-mode: vertical-rl; letter-spacing: .1em; }
-.played-card .card-native-level { position: absolute; left: 3px; bottom: 4px; padding: 2px 3px; border-radius: 3px; color: #fff9e9; background: #9c2f23; font-size: 11px; line-height: 1; }
+.played-card .card-native-level { position: absolute; z-index: 3; left: 3px; bottom: 4px; padding: 2px 3px; border-radius: 3px; color: #fff9e9; background: #9c2f23; font-size: 11px; line-height: 1; }
 @keyframes deal-in { from { opacity: 0; transform: translateY(10px) scale(.9); } }
 .local-seat { position: absolute; z-index: 5; bottom: 15px; left: 50%; width: min(970px, calc(100% - 145px)); transform: translateX(-50%); }
 .local-head { min-height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 3px 8px; }
@@ -93,7 +94,7 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .primary-small { height: 38px; min-width: 92px; padding: 0 18px; border: 0; border-radius: 9px; color: white; background: linear-gradient(135deg, #c34635, #92251e); box-shadow: 0 6px 16px rgba(125,22,16,.28); font-weight: 700; cursor: pointer; }
 .primary-small:disabled { cursor: not-allowed; filter: grayscale(.7); opacity: .45; box-shadow: none; }
 .hand { height: 132px; display: flex; justify-content: center; align-items: flex-end; padding-top: 18px; }
-.card { position: relative; flex: 0 0 76px; height: 112px; margin-left: -17px; padding: 7px; border: 0; border-radius: 9px; color: #191714; background: linear-gradient(145deg, #fffef9, #eee9dc); box-shadow: 0 7px 18px rgba(0,0,0,.3); cursor: pointer; text-align: left; transition: transform .15s, box-shadow .15s, filter .15s; }
+.card { position: relative; flex: 0 0 76px; min-width: 0; height: 112px; margin-left: -17px; padding: 7px; overflow: hidden; border: 0; border-radius: 9px; color: #191714; background: linear-gradient(145deg, #fffef9, #eee9dc); box-shadow: 0 7px 18px rgba(0,0,0,.3); cursor: pointer; text-align: left; transition: transform .15s, box-shadow .15s, filter .15s; }
 .card:first-child { margin-left: 0; }
 .card:hover { transform: translateY(-7px); }
 .card.selected { transform: translateY(-18px); box-shadow: 0 0 0 3px var(--gold), 0 12px 22px rgba(0,0,0,.36); }
@@ -101,14 +102,18 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .card.cannot-bury { filter: brightness(.58) saturate(.55); cursor: not-allowed; }
 .card.cannot-bury:hover { transform: none; }
 .card.red { color: #ba2929; }
-.card-corner { display: grid; width: min-content; justify-items: center; font: 800 18px/1 ui-monospace, monospace; }
+.card-corner { position: relative; z-index: 2; display: grid; width: min-content; justify-items: center; font: 800 18px/1 ui-monospace, monospace; }
 .card-corner span { font-size: 18px; }
 .card-suit { position: absolute; inset: 0; display: grid; place-items: center; font-size: 36px; }
+.card-portrait { position: absolute; z-index: 1; left: 18%; top: 15%; width: 78%; height: 76%; object-fit: contain; pointer-events: none; }
+.card-suit.court-suit { z-index: 2; inset: auto 6px 6px auto; display: block; font-size: 22px; line-height: 1; text-shadow: 0 1px 2px #fff; }
+.played-card .card-portrait { left: 17%; top: 17%; width: 80%; height: 72%; }
+.kitty-cards .played-card .card-suit.court-suit { right: 3px; bottom: 3px; font-size: 12px; }
 .card.joker .card-corner { font-size: 13px; writing-mode: vertical-rl; letter-spacing: .08em; }
 .card.joker .card-suit { font-size: 20px; writing-mode: vertical-rl; letter-spacing: .18em; }
 .card.is-trump::after { content: "主"; position: absolute; left: 5px; bottom: 5px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #fbf1cf; background: #a83428; font-size: 10px; font-weight: 800; }
 .card.is-native-level::after { content: none; }
-.card-native-level { position: absolute; left: 5px; bottom: 5px; padding: 3px 5px; border-radius: 5px; color: #fff9e9; background: #9c2f23; font-size: 12px; font-weight: 800; line-height: 1.1; }
+.card-native-level { position: absolute; z-index: 3; left: 5px; bottom: 5px; padding: 3px 5px; border-radius: 5px; color: #fff9e9; background: #9c2f23; font-size: 12px; font-weight: 800; line-height: 1.1; }
 .start-panel { position: absolute; z-index: 30; left: 50%; top: 47%; transform: translate(-50%,-50%); width: min(430px, calc(100% - 32px)); padding: 28px 30px 25px; text-align: center; border: 1px solid rgba(217,182,95,.5); background: linear-gradient(160deg, rgba(10,48,40,.98), rgba(5,29,25,.99)); border-radius: 20px; box-shadow: 0 30px 90px rgba(0,0,0,.5); }
 .eyebrow { margin: 0 0 5px; color: var(--gold); font-size: 12px; letter-spacing: .18em; }
 .start-panel h2,.game-dialog h2 { margin: 0; font: 36px/1.2 "STKaiti", "KaiTi", serif; }
@@ -147,6 +152,7 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .result-breakdown strong { color: var(--ink); font-weight: 600; text-align: right; }
 @media (max-width: 900px) {
   .local-seat { width: calc(100% - 90px); }
+  .hand { justify-content: flex-start; overflow-x: auto; padding-left: 18px; padding-right: 18px; }
   .card { flex-basis: 68px; margin-left: -20px; }
   .seat-west { left: 12px; }
   .seat-east { right: 12px; }
