@@ -57,7 +57,17 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .trump-badge i { margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--line); color: var(--gold); font-size: 11px; font-style: normal; }
 .center-seal { position: absolute; left: 50%; top: 50%; width: 78px; height: 78px; display: grid; place-items: center; border: 1px solid rgba(217,182,95,.28); transform: translate(-50%,-50%) rotate(45deg); color: rgba(217,182,95,.37); transition: opacity .2s; }
 .center-seal span { transform: rotate(-45deg); font: 44px "STKaiti", "KaiTi", serif; }
+.center-seal.is-ace { border-color: rgba(217,182,95,.6); color: rgba(245,211,127,.8); }
+.center-seal.is-ace span { font-size: 25px; white-space: nowrap; }
 .trick-area>p { position: absolute; bottom: 1px; width: 100%; margin: 0; text-align: center; color: #d7e2dd; font-size: 14px; text-shadow: 0 2px 8px #001; }
+.kitty-reveal { position: absolute; z-index: 6; left: 50%; bottom: 150px; transform: translateX(-50%); display: grid; justify-items: center; gap: 5px; padding: 7px 12px 9px; border: 1px solid rgba(217,182,95,.32); border-radius: 12px; background: rgba(3,28,23,.86); box-shadow: 0 8px 22px rgba(0,0,0,.2); }
+.kitty-reveal>span { color: var(--gold); font-size: 12px; letter-spacing: .1em; white-space: nowrap; }
+.kitty-cards { display: flex; gap: 5px; }
+.kitty-cards .played-card { flex: none; width: 44px; height: 58px; margin: 0; padding: 4px; animation: none; }
+.kitty-cards .played-card .card-corner { font-size: 12px; }
+.kitty-cards .played-card .card-suit { font-size: 19px; }
+.kitty-cards .played-card.joker .card-suit { font-size: 11px; }
+.kitty-cards .played-card .card-native-level { font-size: 9px; }
 .play-slot { position: absolute; min-width: 70px; min-height: 96px; display: flex; justify-content: center; align-items: center; }
 .slot-north { left: 50%; top: 37px; transform: translateX(-50%); }
 .slot-south { left: 50%; bottom: 30px; transform: translateX(-50%); }
@@ -88,6 +98,8 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .card:hover { transform: translateY(-7px); }
 .card.selected { transform: translateY(-18px); box-shadow: 0 0 0 3px var(--gold), 0 12px 22px rgba(0,0,0,.36); }
 .card.illegal { filter: brightness(.65) saturate(.5); }
+.card.cannot-bury { filter: brightness(.58) saturate(.55); cursor: not-allowed; }
+.card.cannot-bury:hover { transform: none; }
 .card.red { color: #ba2929; }
 .card-corner { display: grid; width: min-content; justify-items: center; font: 800 18px/1 ui-monospace, monospace; }
 .card-corner span { font-size: 18px; }
@@ -162,6 +174,9 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
   .hand { justify-content: flex-start; overflow-x: auto; padding: 18px 20px 4px; }
   .card { flex-basis: 62px; height: 96px; margin-left: -15px; }
   .bury-bar { bottom: 148px; width: calc(100% - 24px); justify-content: space-between; }
+  .kitty-reveal { bottom: 140px; padding-inline: 7px; }
+  .kitty-cards { gap: 3px; }
+  .kitty-cards .played-card { width: 40px; height: 54px; }
   .rules-grid { grid-template-columns: 1fr; }
   .result-stats { grid-template-columns: 1fr; }
   .result-breakdown p { display: block; }

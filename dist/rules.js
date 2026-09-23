@@ -8,6 +8,7 @@
   const MIN_LEVEL = 2;
   const MAX_LEVEL = 14;
   const LEVEL_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+  const SUIT_ORDER = ['spades', 'hearts', 'clubs', 'diamonds'];
 
   function rankValue(rank) {
     if (rank === 'J') return 11;
@@ -25,8 +26,26 @@
   function isTrump(card, level, trumpSuit) {
     if (card.joker) return true;
     if (level === 14) return card.rank === 'A';
-    return card.rank === levelRank(level) || card.rank === '7' || card.suit === trumpSuit;
+    return card.rank === levelRank(level) || card.suit === trumpSuit;
   }
+
+  function cardPower(card, level, trumpSuit) {
+    if (!isTrump(card, level, trumpSuit)) return rankValue(card.rank);
+    if (card.joker === 'big') return 1000;
+    if (card.joker === 'small') return 990;
+    if (level === MAX_LEVEL) return 980 + SUIT_ORDER.indexOf(card.suit);
+    if (card.rank === levelRank(level) && card.suit === trumpSuit) return 980;
+    if (card.rank === levelRank(level)) return 960 + SUIT_ORDER.indexOf(card.suit);
+    return 800 + rankValue(card.rank);
+  }
+
+  function cardPoints(card) {
+    if (card.rank === '5') return 5;
+    if (card.rank === '10' || card.rank === 'K') return 10;
+    return 0;
+  }
+
+  function canBuryCard(card) { return cardPoints(card) === 0; }
 
   function isTong(cards) {
     return cards.length === 4 && cards.every(card => !card.joker && card.rank === cards[0].rank);
@@ -61,10 +80,11 @@
       rankValue(play.cards[0].rank) > rankValue(winner.cards[0].rank) ? play : winner);
   }
 
-  function resolveRound(levels, dealer, defenderPoints) {
+  function resolveRound(levels, dealer, defenderPoints, aceCondition = {}) {
     const dealerTeam = dealer % 2;
     const defenderTeam = 1 - dealerTeam;
     const nextLevels = [...levels];
+    const playingAce = levels[dealerTeam] === MAX_LEVEL;
     if (defenderPoints >= 45) {
       const steps = Math.min(3, Math.floor((defenderPoints - 45) / 10));
       nextLevels[defenderTeam] = Math.min(MAX_LEVEL, nextLevels[defenderTeam] + steps);
@@ -75,11 +95,13 @@
         changedDealerSide: true,
         steps,
         escapedPoints: Math.max(0, 100 - defenderPoints),
-        champion: nextLevels[defenderTeam] === MAX_LEVEL ? defenderTeam : null
+        champion: null,
+        aceRetry: false
       };
     }
     const escapedPoints = Math.max(0, 100 - defenderPoints);
-    const steps = escapedPoints === 100 ? 3 : 1;
+    const aceWon = playingAce && aceCondition.firstTrickAce === true && aceCondition.lastTrickAce === true;
+    const steps = playingAce ? 0 : escapedPoints === 100 ? 3 : 1;
     nextLevels[dealerTeam] = Math.min(MAX_LEVEL, nextLevels[dealerTeam] + steps);
     return {
       levels: nextLevels,
@@ -88,9 +110,10 @@
       changedDealerSide: false,
       steps,
       escapedPoints,
-      champion: nextLevels[dealerTeam] === MAX_LEVEL ? dealerTeam : null
+      champion: aceWon ? dealerTeam : null,
+      aceRetry: playingAce && !aceWon
     };
   }
 
-  return { MIN_LEVEL, MAX_LEVEL, LEVEL_RANKS, rankValue, levelRank, isTrump, isTong, canLeadTong, tongGroups, strongestTongFallback, winningTongPlay, resolveRound };
+  return { MIN_LEVEL, MAX_LEVEL, LEVEL_RANKS, rankValue, levelRank, isTrump, cardPower, cardPoints, canBuryCard, isTong, canLeadTong, tongGroups, strongestTongFallback, winningTongPlay, resolveRound };
 });

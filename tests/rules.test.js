@@ -35,13 +35,55 @@ test('闲家达到 45 分后换庄，并按 0、1、2、3 级封顶升级', () =
   }
 });
 
-test('任何一队先升级到 A 时赢得整场', () => {
+test('升到 A 后还需另打一局，不能立刻赢得整场', () => {
   const result = rules.resolveRound([8, 13], 1, 40);
   assert.deepEqual(result.levels, [8, 14]);
-  assert.equal(result.champion, 1);
+  assert.equal(result.champion, null);
   const defender = rules.resolveRound([13, 9], 1, 55);
   assert.deepEqual(defender.levels, [14, 9]);
-  assert.equal(defender.champion, 0);
+  assert.equal(defender.champion, null);
+});
+
+test('打 A 戴帽要求庄家首墩和末墩都出 A，且闲家不足 45 分', () => {
+  for (const flags of [{}, { firstTrickAce: true }, { lastTrickAce: true }]) {
+    const retry = rules.resolveRound([14, 8], 0, 20, flags);
+    assert.equal(retry.champion, null);
+    assert.equal(retry.aceRetry, true);
+    assert.equal(retry.nextDealer, 2);
+    assert.deepEqual(retry.levels, [14, 8]);
+  }
+  const win = rules.resolveRound([14, 8], 0, 44, { firstTrickAce: true, lastTrickAce: true });
+  assert.equal(win.champion, 0);
+  const loseBanker = rules.resolveRound([14, 8], 0, 45, { firstTrickAce: true, lastTrickAce: true });
+  assert.equal(loseBanker.champion, null);
+  assert.equal(loseBanker.nextDealer, 1);
+  assert.equal(loseBanker.aceRetry, false);
+});
+
+test('分牌 5、10、K 都不能埋，其他点数可以埋', () => {
+  for (const rank of ['5', '10', 'K']) assert.equal(rules.canBuryCard({ rank }), false);
+  for (const rank of ['2', '7', 'A', '大王']) assert.equal(rules.canBuryCard({ rank }), true);
+});
+
+test('7 只在打 7 或属于主花色时为主牌', () => {
+  const seven = { rank: '7', suit: 'hearts', joker: null };
+  assert.equal(rules.isTrump(seven, 5, 'clubs'), false);
+  assert.equal(rules.isTrump(seven, 5, 'hearts'), true);
+  assert.equal(rules.isTrump(seven, 7, 'clubs'), true);
+});
+
+test('单张本主仅小于大小王，高于其他级牌和主花色牌', () => {
+  const card = (rank, suit) => ({ rank, suit, joker: null });
+  const big = { rank: '大王', suit: null, joker: 'big' };
+  const small = { rank: '小王', suit: null, joker: 'small' };
+  const native = card('5', 'clubs');
+  const vice = card('5', 'hearts');
+  const suitCard = card('A', 'clubs');
+  assert.ok(rules.cardPower(big, 5, 'clubs') > rules.cardPower(small, 5, 'clubs'));
+  assert.ok(rules.cardPower(small, 5, 'clubs') > rules.cardPower(native, 5, 'clubs'));
+  assert.ok(rules.cardPower(native, 5, 'clubs') > rules.cardPower(vice, 5, 'clubs'));
+  assert.ok(rules.cardPower(vice, 5, 'clubs') > rules.cardPower(suitCard, 5, 'clubs'));
+  assert.equal(rules.cardPower(card('7', 'hearts'), 5, 'clubs'), 7);
 });
 
 test('打 A 时，54 张牌里仅四张 A 和两张大小王为主牌', () => {

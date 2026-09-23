@@ -83,30 +83,12 @@
   }
   function category(card) { return isTrump(card) ? 'trump' : card.suit; }
 
-  function rankBase(rank) {
-    return RULES.rankValue(rank);
-  }
-
   function power(card) {
-    if (!isTrump(card)) return rankBase(card.rank);
-    if (state.level === 14) {
-      if (card.joker === 'big') return 1000;
-      if (card.joker === 'small') return 990;
-      return 980 + SUITS.findIndex(s => s.key === card.suit);
-    }
-    if (card.rank === '7' && card.suit === state.trumpSuit) return 1000;
-    if (card.joker === 'big') return 990;
-    if (card.joker === 'small') return 980;
-    if (card.rank === '7') return 960 + SUITS.findIndex(s => s.key === card.suit);
-    if (card.rank === state.levelRank && card.suit === state.trumpSuit) return 950;
-    if (card.rank === state.levelRank) return 930 + SUITS.findIndex(s => s.key === card.suit);
-    return 800 + rankBase(card.rank);
+    return RULES.cardPower(card, state.level, state.trumpSuit);
   }
 
   function points(card) {
-    if (card.rank === '5') return 5;
-    if (card.rank === '10' || card.rank === 'K') return 10;
-    return 0;
+    return RULES.cardPoints(card);
   }
 
   function cardLabel(card) {
@@ -129,12 +111,13 @@
     const info = card.suit ? suitInfo(card.suit) : null;
     const red = card.joker === 'big' || info?.red;
     const nativeLevel = !card.joker && state.level !== 14 && card.rank === state.levelRank && card.suit === state.trumpSuit;
-    const classes = [compact ? 'played-card' : 'card', red ? 'red' : '', card.joker ? 'joker' : '', !compact && isTrump(card) ? 'is-trump' : '', nativeLevel ? 'is-native-level' : ''].filter(Boolean).join(' ');
+    const cannotBury = !compact && state.phase === 'bury' && !RULES.canBuryCard(card);
+    const classes = [compact ? 'played-card' : 'card', red ? 'red' : '', card.joker ? 'joker' : '', !compact && isTrump(card) ? 'is-trump' : '', nativeLevel ? 'is-native-level' : '', cannotBury ? 'cannot-bury' : ''].filter(Boolean).join(' ');
     const corner = card.joker ? (card.joker === 'big' ? '大王' : '小王') : `${card.rank}<span>${info.symbol}</span>`;
     const center = card.joker ? (card.joker === 'big' ? '大王' : '小王') : info.symbol;
     const nativeMark = nativeLevel ? `<span class="card-native-level">本${card.rank}</span>` : '';
     if (compact) return `<div class="${classes}" title="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</div>`;
-    return `<button type="button" class="${classes}" data-id="${card.id}" aria-label="${cardLabel(card)}"><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</button>`;
+    return `<button type="button" class="${classes}" data-id="${card.id}" aria-label="${cardLabel(card)}${cannotBury ? '，分牌不可埋' : ''}" ${cannotBury ? 'disabled title="分牌不可埋"' : ''}><span class="card-corner">${corner}</span><span class="card-suit">${center}</span>${nativeMark}</button>`;
   }
 
   function beginRound() {
@@ -151,7 +134,8 @@
     state = {
       token, hands: dealt.hands, bottom: dealt.bottom, dealer, trumpSuit, level, levelRank,
       phase: 'dealing', current: dealer, leader: dealer, trick: [], defenderPoints: 0,
-      lastWinner: dealer, locked: true, trickNumber: 1
+      lastWinner: dealer, locked: true, trickNumber: 1,
+      firstTrickAce: false, lastTrickAce: false
     };
     for (const hand of state.hands) sortHand(hand);
     el('start-panel').hidden = true;
@@ -198,9 +182,9 @@
 
   function chooseBuried(player) {
     const hand = state.hands[player];
-    const candidates = [...hand].sort((a, b) => {
-      const scoreA = (isTrump(a) ? 70 : 0) + power(a) / 20 + points(a) * 5;
-      const scoreB = (isTrump(b) ? 70 : 0) + power(b) / 20 + points(b) * 5;
+    const candidates = hand.filter(RULES.canBuryCard).sort((a, b) => {
+      const scoreA = (isTrump(a) ? 70 : 0) + power(a) / 20;
+      const scoreB = (isTrump(b) ? 70 : 0) + power(b) / 20;
       return scoreA - scoreB;
     }).slice(0, 6);
     const ids = new Set(candidates.map(card => card.id));
@@ -211,7 +195,12 @@
   function burySelected() {
     if (selected.size !== 6 || state.phase !== 'bury') return;
     const ids = new Set(selected);
-    state.bottom = state.hands[0].filter(card => ids.has(card.id));
+    const buried = state.hands[0].filter(card => ids.has(card.id));
+    if (buried.length !== 6 || !buried.every(RULES.canBuryCard)) {
+      toast('5、10、K 是分牌，不能埋底');
+      return;
+    }
+    state.bottom = buried;
     state.hands[0] = state.hands[0].filter(card => !ids.has(card.id));
     selected.clear();
     state.phase = 'playing';
@@ -219,7 +208,7 @@
     el('bury-bar').hidden = true;
     renderAll();
     setStatus('底牌已埋好，你先出牌');
-    toast(`已埋 6 张 · 底分 ${state.bottom.reduce((sum, card) => sum + points(card), 0)}`);
+    toast('已埋 6 张非分牌 · 底牌持续明示');
     runTurn();
   }
 
@@ -241,6 +230,11 @@
     el('trump-suit').classList.toggle('red', Boolean(suit?.red));
     el('trump-display').textContent = state.levelRank;
     el('kitty-display').textContent = `底 ${state.bottom.length || (state.phase === 'bury' ? 6 : 0)}`;
+    el('center-seal').querySelector('span').textContent = state.level === 14 ? '戴帽' : '甩';
+    el('center-seal').classList.toggle('is-ace', state.level === 14);
+    const showKitty = ['playing', 'ended'].includes(state.phase) && state.bottom.length === 6;
+    el('kitty-reveal').hidden = !showKitty;
+    if (showKitty) el('kitty-cards').innerHTML = state.bottom.map(card => cardMarkup(card, true)).join('');
     for (let p = 1; p < 4; p++) {
       el(`seat-${p}`).classList.toggle('is-dealer', state.dealer === p);
       el(`seat-${p}`).classList.toggle('is-turn', state.phase === 'playing' && state.current === p);
@@ -264,6 +258,8 @@
   function toggleCard(id) {
     if (!state || state.locked) return;
     if (state.phase === 'bury') {
+      const card = state.hands[0].find(candidate => candidate.id === id);
+      if (!card || !RULES.canBuryCard(card)) { toast('5、10、K 是分牌，不能埋底'); return; }
       if (selected.has(id)) selected.delete(id);
       else if (selected.size < 6) selected.add(id);
       else toast('底牌只能选 6 张');
@@ -345,11 +341,14 @@
     const ids = new Set(cards.map(card => card.id));
     state.hands[player] = state.hands[player].filter(card => !ids.has(card.id));
     state.trick.push({ player, cards, type });
+    if (state.level === 14 && player === state.dealer && state.trickNumber === 1 && cards.some(card => card.rank === 'A')) {
+      state.firstTrickAce = true;
+    }
     const trickComplete = state.trick.length === 4;
     state.locked = true;
     if (!trickComplete) state.current = (player + 1) % 4;
     el(`play-${player}`).innerHTML = cards.map(card => cardMarkup(card, true)).join('');
-    el('center-seal').style.opacity = '.16';
+    el('center-seal').style.opacity = state.level === 14 ? '1' : '.16';
     sound(cards.length > 1 ? 'throw' : 'play');
     renderAll();
     if (type === 'tong') toast(`${NAMES[player]}打出“同” · 四张${cards[0].rank}`);
@@ -367,7 +366,8 @@
     if (!state || state.phase !== 'playing') return;
     renderAll();
     const leadCount = state.trick[0]?.cards.length || 1;
-    setStatus(state.current === 0 ? (state.trick.length ? state.trick[0].type === 'tong' ? '轮到你：有“同”必须跟同，否则出最大的四张主牌' : `轮到你：请跟 ${leadCount} 张` : state.trickNumber <= 3 ? '轮到你先出：前三轮可打“同”，也可单出或甩牌' : '轮到你先出，可单出或选择同类牌甩出') : `${NAMES[state.current]}正在想…`);
+    const aceLead = state.level === 14 && state.dealer === 0 && state.trickNumber === 1 && !state.trick.length;
+    setStatus(state.current === 0 ? (state.trick.length ? state.trick[0].type === 'tong' ? '轮到你：有“同”必须跟同，否则出最大的四张主牌' : `轮到你：请跟 ${leadCount} 张` : aceLead ? '戴帽首墩：庄家须出至少一张 A' : state.trickNumber <= 3 ? '轮到你先出：前三轮可打“同”，也可单出或甩牌' : '轮到你先出，可单出或选择同类牌甩出') : `${NAMES[state.current]}正在想…`);
     if (state.current === 0) {
       state.locked = false;
       renderAll();
@@ -386,14 +386,38 @@
     return RULES.strongestTongFallback(hand, isTrump, power);
   }
 
+  function leastCost(cards) {
+    return [...cards].sort((a, b) => points(a) - points(b) || power(a) - power(b))[0];
+  }
+
+  function mostPoints(cards) {
+    return [...cards].sort((a, b) => points(b) - points(a) || power(a) - power(b))[0];
+  }
+
+  function keepAceForLastTrick(cards, hand, player) {
+    if (state.level !== 14 || player !== state.dealer || state.trickNumber === 1 || hand.length <= 1) return cards;
+    const alternatives = cards.filter(card => card.rank !== 'A');
+    return alternatives.length ? alternatives : cards;
+  }
+
   function chooseAIPlay(player) {
     const hand = state.hands[player];
+    const defending = teamOf(player) !== teamOf(state.dealer);
     if (!state.trick.length) {
+      if (state.level === 14 && player === state.dealer && state.trickNumber === 1) {
+        const aces = hand.filter(card => card.rank === 'A');
+        if (aces.length) return [aces.sort((a, b) => power(a) - power(b))[0]];
+      }
       const tong = state.trickNumber <= 3 ? RULES.tongGroups(hand) : [];
-      if (tong.length) return tong[0];
-      const safe = hand.filter(card => points(card) === 0).sort((a, b) => power(a) - power(b));
-      const scoring = hand.filter(card => points(card) > 0).sort((a, b) => power(a) - power(b));
-      return [safe[0] || scoring[0] || hand[0]];
+      if (tong.length && !(state.level === 14 && player === state.dealer)) return tong.at(-1);
+      const eligible = keepAceForLastTrick(hand, hand, player);
+      // 闲家主动找分；庄家先用强牌建立跑分控制，避免无保护地送分。
+      if (defending) {
+        const scoringTrump = eligible.filter(card => isTrump(card) && points(card) > 0);
+        if (scoringTrump.length) return [scoringTrump.sort((a, b) => power(b) - power(a))[0]];
+      }
+      const safe = eligible.filter(card => points(card) === 0).sort((a, b) => power(b) - power(a));
+      return [safe[0] || [...eligible].sort((a, b) => power(b) - power(a))[0]];
     }
 
     if (state.trick[0].type === 'tong') {
@@ -411,24 +435,40 @@
     const matching = hand.filter(card => category(card) === leadCat).sort((a, b) => power(a) - power(b));
     const chosen = [];
     const needMatch = Math.min(required, matching.length);
-    if (required === 1 && needMatch === 1) {
+    if (required === 1) {
       const current = currentWinningCard();
       const partnerWinning = teamOf(current.player) === teamOf(player);
-      const tablePoints = state.trick.flatMap(play => play.cards).reduce((sum, card) => sum + points(card), 0);
-      const winners = matching.filter(card => beats(card, current.card, leadCat));
-      if (winners.length && (!partnerWinning || tablePoints >= 10)) chosen.push(winners[0]);
-      else chosen.push(matching[0]);
+      const legal = keepAceForLastTrick(needMatch ? matching : hand, hand, player);
+      const winners = legal.filter(card => beats(card, current.card, leadCat));
+      if (partnerWinning) {
+        const losers = legal.filter(card => !beats(card, current.card, leadCat));
+        const safeToFeed = state.trick.length === 3 || power(current.card) >= 980;
+        chosen.push(losers.length ? (safeToFeed ? mostPoints(losers) : leastCost(losers)) : leastCost(legal));
+      } else if (winners.length) {
+        // 两边都会抢有分的墩：庄家把分跑掉，闲家把分抓回来。
+        chosen.push(winners.sort((a, b) => power(a) - power(b) || points(b) - points(a))[0]);
+      } else {
+        chosen.push(leastCost(legal));
+      }
     } else {
-      chosen.push(...matching.slice(0, needMatch));
+      const current = currentWinningCard();
+      const partnerWinning = teamOf(current.player) === teamOf(player);
+      const ordered = [...matching].sort((a, b) => partnerWinning
+        ? points(b) - points(a) || power(a) - power(b)
+        : power(b) - power(a) || points(a) - points(b));
+      chosen.push(...ordered.slice(0, needMatch));
     }
     if (chosen.length < required) {
       const chosenIds = new Set(chosen.map(card => card.id));
+      const partnerWinning = teamOf(currentWinningCard().player) === teamOf(player);
       const rest = hand.filter(card => !chosenIds.has(card.id)).sort((a, b) => {
-        const costA = points(a) * 10 + (isTrump(a) ? 50 : 0) + power(a) / 20;
-        const costB = points(b) * 10 + (isTrump(b) ? 50 : 0) + power(b) / 20;
+        const costA = (partnerWinning ? -points(a) * 10 : points(a) * 10) + (isTrump(a) ? 50 : 0) + power(a) / 20;
+        const costB = (partnerWinning ? -points(b) * 10 : points(b) * 10) + (isTrump(b) ? 50 : 0) + power(b) / 20;
         return costA - costB;
       });
-      chosen.push(...rest.slice(0, required - chosen.length));
+      const allowed = keepAceForLastTrick(rest, hand, player);
+      chosen.push(...allowed.slice(0, required - chosen.length));
+      if (chosen.length < required) chosen.push(...rest.filter(card => !chosen.includes(card)).slice(0, required - chosen.length));
     }
     return chosen;
   }
@@ -480,6 +520,9 @@
     sound(teamOf(winner) === 0 ? 'winTrick' : 'loseTrick');
     renderAll();
     const finished = state.hands.every(hand => hand.length === 0);
+    if (finished && state.level === 14) {
+      state.lastTrickAce = state.trick.some(play => play.player === state.dealer && play.cards.some(card => card.rank === 'A'));
+    }
     const token = state.token;
     setTimeout(() => {
       if (!state || state.token !== token) return;
@@ -499,7 +542,10 @@
     if (teamOf(state.lastWinner) !== teamOf(state.dealer)) state.defenderPoints += bottomPoints;
     const dealerTeam = teamOf(state.dealer);
     const previousLevels = [...match.levels];
-    const outcome = RULES.resolveRound(previousLevels, state.dealer, state.defenderPoints);
+    const outcome = RULES.resolveRound(previousLevels, state.dealer, state.defenderPoints, {
+      firstTrickAce: state.firstTrickAce,
+      lastTrickAce: state.lastTrickAce
+    });
     const defendersWon = outcome.changedDealerSide;
     const homeWon = outcome.winningTeam === 0;
     if (homeWon) record.wins++; else record.losses++;
@@ -515,24 +561,30 @@
     el('result-icon').textContent = homeWon ? '胜' : '负';
     el('result-round-info').textContent = `第 ${match.rounds} 局结算 · ${NAMES[state.dealer]}坐庄 · ${state.trumpSuit ? suitInfo(state.trumpSuit).name : '无花色'} ${state.levelRank}`;
     el('result-title').textContent = outcome.champion !== null
-      ? `${TEAM_NAMES[outcome.champion]}打到 A，赢得整场！`
-      : homeWon ? (dealerTeam === 0 && !defendersWon ? '守庄成功' : '夺庄成功')
-        : (dealerTeam === 1 && !defendersWon ? '对方守庄' : '对方夺庄');
-    const scoreNote = defendersWon
+      ? `${TEAM_NAMES[outcome.champion]}戴帽成功，赢得整场！`
+      : state.level === 14 && outcome.aceRetry ? '戴帽未成，继续打 A'
+        : state.level === 14 && defendersWon ? '戴帽未成，庄家失守'
+          : homeWon ? (dealerTeam === 0 && !defendersWon ? '守庄成功' : '夺庄成功')
+            : (dealerTeam === 1 && !defendersWon ? '对方守庄' : '对方夺庄');
+    const scoreNote = state.level === 14
+      ? outcome.champion !== null ? `庄家首墩、末墩都出 A，闲家只抓 ${state.defenderPoints} 分：戴帽成功。`
+        : outcome.aceRetry ? `闲家抓 ${state.defenderPoints} 分，庄家仍守庄；首末墩出 A 条件未齐，下一局继续打 A。`
+          : `闲家抓 ${state.defenderPoints} 分，达到 45 分，庄家失守。`
+      : defendersWon
       ? `闲家抓得 ${state.defenderPoints} 分，夺庄成功；${outcome.steps ? `升 ${outcome.steps} 级` : '本局不升级'}。`
       : `${dealerSide}守庄成功，跑掉 ${outcome.escapedPoints} 分；升 ${outcome.steps} 级。`;
-    const bottomNote = teamOf(state.lastWinner) === dealerTeam
-      ? `底牌 ${bottomPoints / 2} 分被庄家跑掉。`
-      : `闲家抠底，底牌 ${bottomPoints / 2} 分双倍计入。`;
+    const bottomNote = '六张底牌均非分牌，已全局明示；抠底不加分。';
     el('result-summary').textContent = scoreNote;
     el('result-defender').textContent = state.defenderPoints;
     el('result-escaped').textContent = outcome.escapedPoints;
-    el('result-upgrade').textContent = outcome.steps ? `${winningSide} +${outcome.steps}` : '不升级';
+    el('result-upgrade').textContent = outcome.champion !== null ? '戴帽获胜' : outcome.aceRetry ? '继续打 A' : outcome.steps ? `${winningSide} +${outcome.steps}` : '不升级';
     el('result-bottom').textContent = bottomNote;
+    el('result-ace').hidden = state.level !== 14;
+    if (state.level === 14) el('result-ace').textContent = `戴帽条件：首墩庄家出 A ${state.firstTrickAce ? '✓' : '✗'} · 末墩庄家出 A ${state.lastTrickAce ? '✓' : '✗'} · 闲家不足 45 分 ${state.defenderPoints < 45 ? '✓' : '✗'}`;
     el('result-levels').textContent = `我方 ${RULES.levelRank(previousLevels[0])} → ${RULES.levelRank(match.levels[0])} · 对方 ${RULES.levelRank(previousLevels[1])} → ${RULES.levelRank(match.levels[1])}`;
     el('result-next-dealer').textContent = outcome.champion !== null ? '整场已结束' : `${NAMES[nextDealer]}（${TEAM_NAMES[teamOf(nextDealer)]}）`;
     el('match-record').textContent = `${record.wins}胜 ${record.losses}负`;
-    el('again-button').textContent = outcome.champion !== null ? '重新开赛' : '下一局';
+    el('again-button').textContent = outcome.champion !== null ? '重新开赛' : outcome.aceRetry ? '继续打 A' : '下一局';
     sound(homeWon ? 'roundWin' : 'roundLose');
     const token = state.token;
     setTimeout(() => { if (state?.token === token) el('result-dialog').showModal(); }, 350);
