@@ -31,7 +31,9 @@ button:focus-visible, .card:focus-visible { outline: 3px solid #f2cf70; outline-
 .icon-button,.new-game-button,.secondary-action { border: 1px solid var(--line); color: var(--ink); background: rgba(255,255,255,.05); border-radius: 9px; height: 38px; cursor: pointer; transition: background .2s, border-color .2s, transform .2s; }
 .icon-button:hover,.new-game-button:hover,.secondary-action:hover { background: rgba(255,255,255,.1); border-color: rgba(217,182,95,.45); }
 .icon-button { width: 38px; }
+.icon-button.is-on { color: var(--gold); border-color: rgba(217,182,95,.48); }
 .icon-button:not(.is-on) { opacity: .45; }
+.icon-button:disabled { cursor: not-allowed; opacity: .35; }
 .new-game-button { padding: 0 15px; }
 .table-stage { position: relative; min-height: 0; overflow: hidden; background: radial-gradient(circle at 50% 41%, rgba(28,119,85,.73), transparent 33%), radial-gradient(circle at center, #0d4d3c 0, #092f28 68%, #061f1b 100%); }
 .table-stage::before { content: ""; position: absolute; inset: 3.4% 6%; border: 1px solid rgba(217,182,95,.22); border-radius: 46% / 38%; box-shadow: 0 0 0 16px rgba(0,0,0,.11), inset 0 0 120px rgba(0,0,0,.2); pointer-events: none; }

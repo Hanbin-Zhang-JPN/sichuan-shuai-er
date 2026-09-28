@@ -6,6 +6,7 @@
 
 - **Mac 本地游玩：** 下载并解压整个项目，双击根目录的 `index.html` 或 `打开游戏.command`。MacBook Air M3 的 Safari、Chrome 等现代浏览器均可运行。
 - J、Q、K 牌面配有人物画像；点数、花色与本主标识仍保持清晰可辨。
+- 开局点击发牌后会播放浏览器内生成的背景音乐，无需下载音频文件。平稳牌局为 88 BPM；闲家接近 45 分、手牌渐少或进入戴帽局时加快到 116 BPM；临近换庄、末墩及戴帽首墩等决胜时刻升到 148 BPM。右上角“♫”可独立开关背景音乐，“声”只控制出牌音效；音乐开关会记在本机。
 - **其他电脑本地游玩：** 下载并解压整个项目，双击根目录的 `index.html`。请保留 `dist/` 文件夹及其中全部文件。
 - **GitHub Pages 在线游玩：** 仓库开启 Pages 后，点开仓库主页显示的 Pages 地址即可进入游戏。
 
@@ -33,9 +34,11 @@ index.html          本地和 GitHub Pages 入口
 dist/index.html     游戏界面
 dist/styles.css     样式
 dist/rules.js       规则与升级计算
+dist/music.js       随牌局变化的背景音乐
 dist/app.js         发牌、出牌和 AI
 打开游戏.command     macOS 双击入口
 tests/rules.test.js 规则边界测试
+tests/music.test.js 配乐节奏切换测试
 ```
 
-开发者可运行 `node --test tests/rules.test.js` 检查关键规则。游戏本身不依赖 Node.js。
+开发者可运行 `node --test tests/*.test.js` 检查关键规则与配乐节奏。游戏本身不依赖 Node.js。

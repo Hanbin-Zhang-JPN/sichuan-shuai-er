@@ -11,6 +11,7 @@
   const NAMES = ['你', '川叔', '竹影', '蓉姐'];
   const TEAM_NAMES = ['我方', '对方'];
   const RULES = window.ShuaiErRules;
+  const MUSIC = window.ShuaiErMusic;
   const el = id => document.getElementById(id);
 
   const storage = {
@@ -27,6 +28,8 @@
   let state = null;
   let selected = new Set();
   let soundOn = true;
+  let musicOn = storage.get('shuaiErMusicV1', true) !== false;
+  const music = MUSIC.createPlayer();
   let toastTimer = null;
   let roundToken = 0;
   let match = storage.get('shuaiErMatchV2', { levels: [2, 2], nextDealer: 0, champion: null, rounds: 0 });
@@ -140,6 +143,7 @@
       lastWinner: dealer, locked: true, trickNumber: 1, playedCards: [],
       firstTrickAce: false, lastTrickAce: false
     };
+    music.setEnabled(musicOn);
     for (const hand of state.hands) sortHand(hand);
     el('start-panel').hidden = true;
     el('result-dialog').open && el('result-dialog').close();
@@ -244,7 +248,18 @@
     }
     el('local-dealer-chip').classList.toggle('active', state.dealer === 0);
     el('turn-actions').hidden = state.phase !== 'playing' || state.current !== 0 || state.locked || state.trick.length === 4;
+    updateMusicButton();
     updateButtons();
+  }
+
+  function updateMusicButton() {
+    const button = el('music-button');
+    const mode = MUSIC.modeForRound(state);
+    music.setMode(mode);
+    button.classList.toggle('is-on', musicOn);
+    button.setAttribute('aria-pressed', String(musicOn));
+    button.setAttribute('aria-label', musicOn ? '关闭背景音乐' : '开启背景音乐');
+    button.title = musicOn ? `背景音乐：${MUSIC.MODE_NAMES[mode]}节奏（${MUSIC.BPM[mode]} BPM）` : '背景音乐已关闭';
   }
 
   function renderHand() {
@@ -616,4 +631,18 @@
     toast(soundOn ? '音效已开启' : '音效已关闭');
     if (soundOn) sound('play');
   });
+  el('music-button').addEventListener('click', () => {
+    musicOn = !musicOn;
+    storage.set('shuaiErMusicV1', musicOn);
+    music.setEnabled(musicOn && Boolean(state));
+    updateMusicButton();
+    toast(musicOn ? '背景音乐已开启' : '背景音乐已关闭');
+  });
+  if (!music.isAvailable()) {
+    musicOn = false;
+    el('music-button').disabled = true;
+    el('music-button').title = '此浏览器不支持背景音乐';
+  } else {
+    updateMusicButton();
+  }
 })();
